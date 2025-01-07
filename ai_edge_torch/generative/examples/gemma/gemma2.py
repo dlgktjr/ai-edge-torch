@@ -133,6 +133,7 @@ class Gemma2(nn.Module):
       tokens: torch.Tensor,
       input_pos: torch.Tensor,
       kv_cache: kv_utils.KVCache,
+      mask: Optional[torch.Tensor] = None,
       export_config: Optional[model_builder.ExportConfig] = None,
   ) -> dict[torch.Tensor, kv_utils.KVCache]:
     _, seq_len = tokens.size()
@@ -155,8 +156,12 @@ class Gemma2(nn.Module):
 
     updated_kv_entires = []
     for i, block in enumerate(self.transformer_blocks):
-      mask = self.get_attention_mask(
-          block.config.attn_config.attn_type, input_pos
+      mask = (
+          mask
+          if mask is not None
+          else self.get_attention_mask(
+              block.config.attn_config.attn_type, input_pos
+          )
       )
       kv_entry = kv_cache.caches[i] if kv_cache else None
       x, kv_entry = block(x, (cos, sin), mask, input_pos, kv_entry)
